@@ -1,0 +1,65 @@
+import requests
+import re
+import os
+
+heads = {}
+heads['User-Agent'] = 'Mozilla/5.0 ' \
+                           '(Macintosh; U; Intel Mac OS X 10_6_8; en-us) AppleWebKit/534.50 ' \
+                           '(KHTML, like Gecko) Version/5.1 Safari/534.50'
+def getHtml(url,heads):
+     response = requests.get(url,headers=heads)
+     response.encoding='utf-8'
+     return response.text
+
+def getImg(html):
+     pat=re.compile(r'<a href="(/album/\d+.+?)">') #匹配大页面内的小栏目路径
+     pag=pat.findall(html)
+     #print(pag)
+     new=[]
+     for i in pag:
+         full=str("https://xcao3.com")+str(i)  #相对路径补全
+         new.append(full)
+     return new
+
+
+def get_big(big):
+     con=getHtml(big,heads)
+     reg=re.compile(r'<img src="(/media.+?.jpg)"') #小栏目页面图片匹配
+     #<img src="/media/photos/651310.jpg" alt="" id="album_photo_651310">
+     bglist=reg.findall(con)
+     #print(bglist)
+     new=[]
+     for i in bglist:
+         i="https://xcao3.com"+str(i)  # 相对路径补全
+         new.append(i)
+     return new
+def down(paglist):
+     for pag in paglist:
+         name=pag.split("/")[-1]   #每个小栏目的名字 然后下载
+         loc="B:/1/图片/"
+         cwd=loc+str(name)
+         if os.path.exists(cwd)!=True:
+             os.makedirs(cwd)
+             
+         imgList=get_big(pag)
+         x=0
+         for img in imgList:
+             print(img)
+             x+=1
+             print("正在下载:"+name+"第"+str(x)+"张图")
+             img_resp=requests.get(img)
+             img_down=img_resp.content
+             with open(cwd+"/"+str(x)+".jpg","wb")as f:
+                 f.write(img_down)
+             
+         
+def totalPage():
+     n=int(input("请输入要下载前n页："))
+     totalPage=['https://xcao3.com/albums?page={}'.format(str(i)) for i  in range(1,(n+1))]
+     for page in totalPage:
+         a=getHtml(page,heads)
+         b=getImg(a)
+         down(b)
+             
+if __name__=="__main__":
+     totalPage()
